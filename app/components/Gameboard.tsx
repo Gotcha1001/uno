@@ -1340,7 +1340,7 @@ export function GameBoard({
 
         {/* ── Player's hand ─────────────────────────────────────────────────── */}
         <div
-          className="relative border-t border-white/10 bg-black/40 backdrop-blur-md px-4 pt-3 pb-4"
+          className="relative border-t border-white/10 bg-black/40 backdrop-blur-md px-4 pt-3 pb-4 overflow-visible"
           style={{ boxShadow: "0 -8px 32px rgba(0,0,0,0.5)" }}
         >
           <div className="flex items-center justify-between mb-3">
@@ -1368,7 +1368,7 @@ export function GameBoard({
             </AnimatePresence>
           </div>
 
-          <div className="flex flex-wrap justify-center gap-1.5 max-h-44 overflow-y-auto pb-1">
+          <div className="flex flex-wrap justify-center gap-1.5 max-h-44 overflow-visible pt-3 pb-1">
             {playerHand?.map((cardId, i) => {
               const playable =
                 isMyTurn &&

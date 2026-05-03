@@ -227,3 +227,32 @@ export const getMessages = query({
       .take(50);
   },
 });
+
+export const resetRoom = mutation({
+  args: {
+    roomId: v.id("rooms"),
+  },
+  handler: async (ctx, { roomId }) => {
+    const room = await ctx.db.get(roomId);
+    if (!room) throw new Error("Room not found");
+
+    // 1. Delete the finished game document so startGame can create a fresh one
+    const oldGame = await ctx.db
+      .query("games")
+      .withIndex("by_room", (q) => q.eq("roomId", roomId))
+      .first();
+    if (oldGame) await ctx.db.delete(oldGame._id);
+
+    // 2. Reset every player's isReady flag and clear their hand
+    const players = await ctx.db
+      .query("players")
+      .withIndex("by_room", (q) => q.eq("roomId", roomId))
+      .collect();
+    for (const player of players) {
+      await ctx.db.patch(player._id, { isReady: false, hand: [] });
+    }
+
+    // 3. Reset the room status back to "waiting"
+    await ctx.db.patch(roomId, { status: "waiting" });
+  },
+});

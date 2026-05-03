@@ -11,6 +11,7 @@
 // import { Id } from "@/convex/_generated/dataModel";
 // import { useBackground } from "../context/BackgroundContext";
 // import { useSoundManager } from "@/hooks/useSoundManager";
+// import { VideoLobby } from "./Videolobby";
 
 // // ─── Interfaces ───────────────────────────────────────────────────────────────
 
@@ -79,7 +80,6 @@
 //   return false;
 // }
 
-// // Respects the draw stack — same logic as the server penalty guard
 // function isCardPlayable(
 //   cardId: string,
 //   topCard: string,
@@ -138,7 +138,7 @@
 //   const { selected: boardBg } = useBackground();
 
 //   // ── Sound ──────────────────────────────────────────────────────────────────
-//   const { play, setMuted, isMuted } = useSoundManager();
+//   const { play, setMuted } = useSoundManager();
 //   const [muted, setMutedState] = useState(false);
 //   const toggleMute = () => {
 //     const next = !muted;
@@ -146,7 +146,6 @@
 //     setMuted(next);
 //   };
 
-//   // Track previous state for reactive sounds
 //   const prevIsMyTurn = useRef(false);
 //   const prevHandLength = useRef<number | null>(null);
 //   const prevGameStatus = useRef<string>("active");
@@ -162,7 +161,11 @@
 //   const currentGlow = COLOR_GLOW[game.currentColor] ?? "rgba(147,51,234,0.5)";
 //   const currentHex = COLOR_HEX[game.currentColor] ?? "#9333ea";
 
-//   // ── Sound effects (reactive) ───────────────────────────────────────────────
+//   // ── My display name for the video tile ────────────────────────────────────
+//   const myName =
+//     players.find((p) => p.userId === currentUserId)?.name ?? "Player"; // ← ADD THIS
+
+//   // ── Sound effects ──────────────────────────────────────────────────────────
 
 //   useEffect(() => {
 //     if (!dealPlayed.current && game.status === "active") {
@@ -172,9 +175,7 @@
 //   }, [game.status, play]);
 
 //   useEffect(() => {
-//     if (isMyTurn && !prevIsMyTurn.current) {
-//       play("yourTurn");
-//     }
+//     if (isMyTurn && !prevIsMyTurn.current) play("yourTurn");
 //     prevIsMyTurn.current = isMyTurn;
 //   }, [isMyTurn, play]);
 
@@ -192,11 +193,7 @@
 
 //   useEffect(() => {
 //     if (prevGameStatus.current !== "finished" && game.status === "finished") {
-//       if (game.winnerId === currentUserId) {
-//         play("win");
-//       } else {
-//         play("lose");
-//       }
+//       play(game.winnerId === currentUserId ? "win" : "lose");
 //     }
 //     prevGameStatus.current = game.status;
 //   }, [game.status, game.winnerId, currentUserId, play]);
@@ -208,14 +205,10 @@
 //       toast.error("Not your turn!");
 //       return;
 //     }
-
-//     // Basic playability check
 //     if (!canPlayCard(cardId, topCard, game.currentColor)) {
 //       toast.error("Can't play that card");
 //       return;
 //     }
-
-//     // ── Draw stack enforcement (client-side mirror of server rule) ────────────
 //     if (game.drawStack > 0) {
 //       const { value } = parseCard(cardId);
 //       const { value: topValue } = parseCard(topCard);
@@ -232,23 +225,14 @@
 //         return;
 //       }
 //     }
-//     // ─────────────────────────────────────────────────────────────────────────
-
 //     const { value } = parseCard(cardId);
-
-//     // Play colour-tinted sound
-//     if (value === "wild" || cardId === "wild_draw4") {
-//       play("cardPlayWild");
-//     } else {
-//       play("cardPlay", parseCard(cardId).color);
-//     }
-
+//     if (value === "wild" || cardId === "wild_draw4") play("cardPlayWild");
+//     else play("cardPlay", parseCard(cardId).color);
 //     if (value === "wild" || cardId === "wild_draw4") {
 //       setPendingWildCard(cardId);
 //       setShowColorPicker(true);
 //       return;
 //     }
-
 //     try {
 //       setSelectedCard(cardId);
 //       await playCard({ roomId: room._id, userId: currentUserId, cardId });
@@ -306,16 +290,12 @@
 //           style={{ zIndex: 0 }}
 //         />
 //       )}
-
-//       {/* Overlay tint */}
 //       {boardBg.src && boardBg.overlay && (
 //         <div
 //           className="absolute inset-0 pointer-events-none"
 //           style={{ background: boardBg.overlay, zIndex: 1 }}
 //         />
 //       )}
-
-//       {/* Felt texture overlay */}
 //       <div
 //         className="absolute inset-0 pointer-events-none"
 //         style={{
@@ -324,8 +304,6 @@
 //           zIndex: 2,
 //         }}
 //       />
-
-//       {/* Dynamic glow from current color */}
 //       <motion.div
 //         className="absolute inset-0 pointer-events-none"
 //         animate={{ opacity: [0.06, 0.12, 0.06] }}
@@ -344,28 +322,36 @@
 //         >
 //           <ArrowLeft size={13} /> Lobby
 //         </button>
-
 //         <div className="flex items-center gap-2">
 //           <span className="text-sm font-bold text-white tracking-wide">
 //             {room.name}
 //           </span>
 //         </div>
-
 //         <div className="flex items-center gap-2">
-//           {/* Mute button */}
 //           <button
 //             onClick={toggleMute}
 //             className="p-2 rounded-xl border border-white/20 text-white/70 hover:text-white hover:bg-white/10 transition-all"
-//             title={muted ? "Unmute sounds" : "Mute sounds"}
 //           >
 //             {muted ? <VolumeX size={15} /> : <Volume2 size={15} />}
 //           </button>
-
 //           <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-white/20 bg-black/30 text-xs font-semibold text-white/70">
 //             🃏 <span>{game.deck.length}</span>
 //           </div>
 //         </div>
 //       </header>
+
+//       {/* ── Video chat panel ─────────────────────────────────────────────────
+//            Sits just below the header, above the game content.
+//            defaultCollapsed keeps it out of the way until players open it.
+//       ──────────────────────────────────────────────────────────────────────── */}
+//       <div className="relative z-20 px-4 pt-2">
+//         <VideoLobby
+//           roomId={String(room._id)}
+//           userId={currentUserId}
+//           userName={myName}
+//           defaultCollapsed={true}
+//         />
+//       </div>
 
 //       <div className="flex-1 flex flex-col relative z-10 overflow-hidden">
 //         {/* ── Opponents row ────────────────────────────────────────────────── */}
@@ -454,7 +440,6 @@
 
 //         {/* ── Center game area ──────────────────────────────────────────────── */}
 //         <div className="flex-1 flex flex-col items-center justify-center gap-4 px-4 py-2">
-//           {/* Last action log */}
 //           <AnimatePresence mode="wait">
 //             <motion.div
 //               key={game.lastAction ?? "start"}
@@ -468,7 +453,6 @@
 //             </motion.div>
 //           </AnimatePresence>
 
-//           {/* Turn indicator */}
 //           <AnimatePresence mode="wait">
 //             <motion.div
 //               key={currentPlayerId}
@@ -506,7 +490,6 @@
 //             </motion.div>
 //           </AnimatePresence>
 
-//           {/* Color indicator & direction */}
 //           <div className="flex items-center gap-3">
 //             <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-black/30 border border-white/15 backdrop-blur-sm">
 //               <span className="text-[10px] text-white/50 uppercase tracking-wider">
@@ -542,7 +525,6 @@
 //             )}
 //           </div>
 
-//           {/* ── Draw & Discard piles ──────────────────────────────────────── */}
 //           <div className="flex items-center gap-10">
 //             {/* Draw pile */}
 //             <div className="flex flex-col items-center gap-2">
@@ -590,14 +572,8 @@
 //                     initial={{ scale: 0.6, opacity: 0, rotateY: 90, y: -20 }}
 //                     animate={{ scale: 1, opacity: 1, rotateY: 0, y: 0 }}
 //                     exit={{ scale: 0.8, opacity: 0, y: 10 }}
-//                     transition={{
-//                       type: "spring",
-//                       stiffness: 320,
-//                       damping: 24,
-//                     }}
-//                     style={{
-//                       filter: `drop-shadow(0 8px 24px ${currentGlow})`,
-//                     }}
+//                     transition={{ type: "spring", stiffness: 320, damping: 24 }}
+//                     style={{ filter: `drop-shadow(0 8px 24px ${currentGlow})` }}
 //                   >
 //                     <UnoCard cardId={topCard} size="lg" index={0} />
 //                   </motion.div>
@@ -612,7 +588,7 @@
 
 //         {/* ── Player's hand ─────────────────────────────────────────────────── */}
 //         <div
-//           className="relative border-t border-white/10 bg-black/40 backdrop-blur-md px-4 pt-3 pb-4"
+//           className="relative border-t border-white/10 bg-black/40 backdrop-blur-md px-4 pt-3 pb-4 overflow-visible"
 //           style={{ boxShadow: "0 -8px 32px rgba(0,0,0,0.5)" }}
 //         >
 //           <div className="flex items-center justify-between mb-3">
@@ -640,10 +616,8 @@
 //             </AnimatePresence>
 //           </div>
 
-//           {/* Cards fan */}
-//           <div className="flex flex-wrap justify-center gap-1.5 max-h-44 overflow-y-auto pb-1">
+//           <div className="flex flex-wrap justify-center gap-1.5 max-h-44 overflow-visible pt-3 pb-1">
 //             {playerHand?.map((cardId, i) => {
-//               // ── Uses isCardPlayable which respects the draw stack ──────────
 //               const playable =
 //                 isMyTurn &&
 //                 isCardPlayable(
@@ -666,7 +640,6 @@
 //             })}
 //           </div>
 
-//           {/* Draw stack warning */}
 //           {isMyTurn && game.drawStack > 0 && (
 //             <motion.p
 //               initial={{ opacity: 0, y: 4 }}
@@ -843,7 +816,7 @@ function isCardPlayable(
     const { value } = parseCard(cardId);
     const { value: topValue } = parseCard(topCard);
     if (topValue === "draw2" && value !== "draw2") return false;
-    if (topCard === "wild_draw4" && cardId !== "wild_draw4") return false;
+    if (topValue === "wild_draw4" && cardId !== "wild_draw4") return false;
     if (value === "wild") return false;
   }
   return true;
@@ -887,11 +860,17 @@ export function GameBoard({
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [pendingWildCard, setPendingWildCard] = useState<string | null>(null);
   const [selectedCard, setSelectedCard] = useState<string | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
   const { selected: boardBg } = useBackground();
+
+  // Ref for the discard pile drop target
+  const discardRef = useRef<HTMLDivElement>(null);
 
   // ── Sound ──────────────────────────────────────────────────────────────────
   const { play, setMuted } = useSoundManager();
   const [muted, setMutedState] = useState(false);
+  // Add this state near your other useState declarations
+  const [draggingCard, setDraggingCard] = useState<string | null>(null);
   const toggleMute = () => {
     const next = !muted;
     setMutedState(next);
@@ -912,10 +891,8 @@ export function GameBoard({
     players.find((p) => p.userId === currentPlayerId)?.name ?? "Unknown";
   const currentGlow = COLOR_GLOW[game.currentColor] ?? "rgba(147,51,234,0.5)";
   const currentHex = COLOR_HEX[game.currentColor] ?? "#9333ea";
-
-  // ── My display name for the video tile ────────────────────────────────────
   const myName =
-    players.find((p) => p.userId === currentUserId)?.name ?? "Player"; // ← ADD THIS
+    players.find((p) => p.userId === currentUserId)?.name ?? "Player";
 
   // ── Sound effects ──────────────────────────────────────────────────────────
 
@@ -957,25 +934,17 @@ export function GameBoard({
       toast.error("Not your turn!");
       return;
     }
-    if (!canPlayCard(cardId, topCard, game.currentColor)) {
-      toast.error("Can't play that card");
+    // Use isCardPlayable instead of canPlayCard — it enforces draw stack rules too
+    if (!isCardPlayable(cardId, topCard, game.currentColor, game.drawStack)) {
+      if (game.drawStack > 0) {
+        const { value: topValue } = parseCard(topCard);
+        if (topValue === "wild_draw4")
+          toast.error("You must play a +4 or draw!");
+        else toast.error("You must play a +2 or draw!");
+      } else {
+        toast.error("Can't play that card");
+      }
       return;
-    }
-    if (game.drawStack > 0) {
-      const { value } = parseCard(cardId);
-      const { value: topValue } = parseCard(topCard);
-      if (topValue === "draw2" && value !== "draw2") {
-        toast.error("You must play a +2 or draw!");
-        return;
-      }
-      if (topCard === "wild_draw4" && cardId !== "wild_draw4") {
-        toast.error("You must play a +4 or draw!");
-        return;
-      }
-      if (value === "wild") {
-        toast.error("You cannot change color while a draw stack is active!");
-        return;
-      }
     }
     const { value } = parseCard(cardId);
     if (value === "wild" || cardId === "wild_draw4") play("cardPlayWild");
@@ -1024,6 +993,25 @@ export function GameBoard({
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to draw");
     }
+  };
+
+  // ── Drag handlers ──────────────────────────────────────────────────────────
+
+  // Called when a draggable card is dropped onto the discard pile
+  const handleDiscardDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const cardId = e.dataTransfer.getData("cardId");
+    if (cardId) handleCardClick(cardId);
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault(); // required to allow drop
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragOver(false);
   };
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -1092,10 +1080,7 @@ export function GameBoard({
         </div>
       </header>
 
-      {/* ── Video chat panel ─────────────────────────────────────────────────
-           Sits just below the header, above the game content.
-           defaultCollapsed keeps it out of the way until players open it.
-      ──────────────────────────────────────────────────────────────────────── */}
+      {/* ── Video chat panel ──────────────────────────────────────────────────── */}
       <div className="relative z-20 px-4 pt-2">
         <VideoLobby
           roomId={String(room._id)}
@@ -1306,9 +1291,36 @@ export function GameBoard({
               </span>
             </div>
 
-            {/* Discard pile */}
-            <div className="flex flex-col items-center gap-2">
-              <div className="relative">
+            {/* ── Discard pile — also a drop target ──────────────────────── */}
+            <div className="flex flex-col items-center gap-2 mt-5">
+              <div
+                ref={discardRef}
+                onDrop={handleDiscardDrop}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                className="relative transition-transform duration-150"
+                style={{
+                  // Expand hit area generously so drops on the edge register
+                  padding: "12px",
+                  margin: "-12px",
+                }}
+              >
+                {/* Drop target highlight ring */}
+                <AnimatePresence>
+                  {isDragOver && isMyTurn && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      className="absolute inset-0 rounded-[28px] pointer-events-none z-10"
+                      style={{
+                        border: "2px dashed rgba(255,255,255,0.8)",
+                        boxShadow: "0 0 30px 8px rgba(255,255,255,0.25)",
+                      }}
+                    />
+                  )}
+                </AnimatePresence>
+
                 <motion.div
                   className="absolute inset-[-6px] rounded-[20px] pointer-events-none"
                   animate={{ opacity: [0.5, 1, 0.5] }}
@@ -1331,7 +1343,7 @@ export function GameBoard({
                   </motion.div>
                 </AnimatePresence>
               </div>
-              <span className="text-[10px] font-semibold text-white/50 uppercase tracking-wider">
+              <span className="text-[10px] font-semibold text-white/50 uppercase tracking-wider mt-3">
                 Discard
               </span>
             </div>
@@ -1347,6 +1359,12 @@ export function GameBoard({
             <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/40">
               Your Hand ({playerHand?.length ?? 0})
             </span>
+            {/* Drag hint — only shown on your turn */}
+            {isMyTurn && (playerHand?.length ?? 0) > 0 && (
+              <span className="text-[10px] text-white/30 italic">
+                drag a card to the discard pile
+              </span>
+            )}
             <AnimatePresence>
               {playerHand?.length === 1 && (
                 <motion.div
@@ -1379,15 +1397,46 @@ export function GameBoard({
                   game.drawStack,
                 );
               return (
-                <UnoCard
+                // Outer wrapper handles the HTML5 drag — framer-motion's own
+                // drag conflicts with the discard drop target, so we use the
+                // native API here and keep framer-motion just for hover/tap.
+                <div
                   key={`${cardId}-${i}`}
-                  cardId={cardId}
-                  size="md"
-                  isPlayable={playable}
-                  isSelected={selectedCard === cardId}
-                  onClick={() => handleCardClick(cardId)}
-                  index={i}
-                />
+                  draggable={playable}
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData("cardId", cardId);
+                    e.dataTransfer.effectAllowed = "move";
+                    setDraggingCard(cardId);
+
+                    // Clone the element at its natural (non-hovered) position for the ghost
+                    const el = e.currentTarget as HTMLElement;
+                    const clone = el.cloneNode(true) as HTMLElement;
+                    clone.style.position = "fixed";
+                    clone.style.top = "-9999px";
+                    clone.style.left = "-9999px";
+                    clone.style.transform = "none"; // strip framer-motion transforms
+                    clone.style.opacity = "1";
+                    document.body.appendChild(clone);
+                    e.dataTransfer.setDragImage(
+                      clone,
+                      el.offsetWidth / 2,
+                      el.offsetHeight / 2,
+                    );
+                    setTimeout(() => document.body.removeChild(clone), 0);
+                  }}
+                  onDragEnd={() => setDraggingCard(null)}
+                  style={{ cursor: playable ? "grab" : "default" }}
+                  className="active:cursor-grabbing"
+                >
+                  <UnoCard
+                    cardId={cardId}
+                    size="md"
+                    isPlayable={playable && draggingCard !== cardId} // disable hover anim while dragging
+                    isSelected={selectedCard === cardId}
+                    onClick={() => handleCardClick(cardId)}
+                    index={i}
+                  />
+                </div>
               );
             })}
           </div>
